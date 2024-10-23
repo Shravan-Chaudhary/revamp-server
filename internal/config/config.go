@@ -9,7 +9,7 @@ import (
 )
 
 type HTTPSever struct {
-	Addr string
+	Addr string `yaml:"addr" env:"ADDR" env-default:":8080" env-required:"true"`
 }
 
 type Config struct {
@@ -29,10 +29,12 @@ func MustLoad() *Config {
 		configPath = *flags
 	}
 
+	// Check if path exists
 	if configPath == "" {
 		log.Fatal("Config path is required")
 	}
 
+	// Check if file exists
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		log.Fatalf("Config file not found %s", configPath)
 	}
