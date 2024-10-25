@@ -42,6 +42,7 @@ func main() {
 		WriteTimeout: 10 * time.Second,
 	}
 
+	// Graceful shutdown
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
