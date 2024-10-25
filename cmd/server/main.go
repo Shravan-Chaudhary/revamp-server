@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/Shravan-Chaudhary/revamp-server/internal/pkg/config"
+	"github.com/Shravan-Chaudhary/revamp-server/internal/pkg/errors"
+	"github.com/Shravan-Chaudhary/revamp-server/internal/pkg/health"
 	"github.com/Shravan-Chaudhary/revamp-server/internal/pkg/response"
 	"github.com/gin-gonic/gin"
 )
@@ -24,6 +26,22 @@ func main() {
 	responseHandler := response.NewResponseHandler(*cfg)
 
 	r := gin.Default()
+
+	isDev := true
+	r.Use(errors.ErrorHandler(isDev))
+
+	r.NoRoute(func(c *gin.Context) {
+		c.Error(errors.HttpErrors.NotFound("Route not found"))
+	})
+
+	r.GET("/health", func(c *gin.Context) {
+		healthData ,err := health.HealthCheck(cfg.Env)
+		if err != nil {
+			c.Error(errors.HttpErrors.InternalServer(err.Error()))
+			return
+		}
+		responseHandler.Send(c, http.StatusOK, response.Messages.Success, healthData)
+	})
 
 	r.GET("/", func(c *gin.Context) {
 		responseHandler.Send(c, http.StatusOK, response.Messages.Success, gin.H{
