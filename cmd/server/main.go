@@ -10,7 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Shravan-Chaudhary/revamp-server/internal/config"
+	"github.com/Shravan-Chaudhary/revamp-server/internal/pkg/config"
+	"github.com/Shravan-Chaudhary/revamp-server/internal/pkg/response"
 	"github.com/gin-gonic/gin"
 )
 
@@ -20,17 +21,18 @@ func main() {
 	// redis setup if any
 
 	cfg := config.MustLoad()
+	responseHandler := response.NewResponseHandler(*cfg)
 
 	r := gin.Default()
 
 	r.GET("/", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "Hello World",
+		responseHandler.Send(c, http.StatusOK, response.Messages.Success, gin.H{
+			"message": "Hello from new handler",
 		})
 	})
 
 	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK,gin.H{
+		responseHandler.Send(c, http.StatusOK, response.Messages.Success, gin.H{
 			"message": "pong",
 		})
 	})

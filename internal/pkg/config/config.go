@@ -5,20 +5,12 @@ import (
 	"log"
 	"os"
 
+	"github.com/Shravan-Chaudhary/revamp-server/internal/pkg/types"
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
-type HTTPSever struct {
-	Addr string `yaml:"addr" env:"ADDR" env-default:":8080" env-required:"true"`
-}
 
-type Config struct {
-	Env         string `yaml:"env" env:"ENV" env-required:"true" env-default:"production"`
-	StoragePath string `yaml:"storage_path" env:"STORAGE_PATH" env-default:"/storage/storage.db" env-required:"true"`
-	HTTPSever   `yaml:"http_server"`
-}
-
-func MustLoad() *Config {
+func MustLoad() *types.Config {
 	var configPath string
 	configPath = os.Getenv("CONFIG_PATH")
 
@@ -39,7 +31,7 @@ func MustLoad() *Config {
 		log.Fatalf("Config file not found %s", configPath)
 	}
 
-	var cfg Config
+	var cfg types.Config
 
 	err := cleanenv.ReadConfig(configPath, &cfg)
 
