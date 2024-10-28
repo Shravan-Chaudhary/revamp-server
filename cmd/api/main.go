@@ -10,11 +10,15 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Shravan-Chaudhary/revamp-server/internal/http/user"
 	"github.com/Shravan-Chaudhary/revamp-server/internal/pkg/config"
 	"github.com/Shravan-Chaudhary/revamp-server/internal/pkg/errors"
 	"github.com/Shravan-Chaudhary/revamp-server/internal/pkg/health"
 	"github.com/Shravan-Chaudhary/revamp-server/internal/pkg/response"
+	"github.com/Shravan-Chaudhary/revamp-server/internal/pkg/types"
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func main() {
@@ -23,7 +27,24 @@ func main() {
 	// redis setup if any
 
 	cfg := config.MustLoad()
+	client, err := mongo.Connect(context.TODO(), options.Client().
+		ApplyURI(cfg.MONGO_URI))
+	if err != nil {
+		log.Fatal(err)
+	}
+	slog.Info("Connected to MongoDB")
+	ctx := context.Background()
+	coll := client.Database(cfg.DATABASE_NAME).Collection("users")
+
+	userOne := types.User{
+		ID : "1",
+		FIRSTNAME: "Shravan",
+		LASTNAME: "Chaudhary",
+	}
+	coll.InsertOne(ctx, userOne)
+
 	responseHandler := response.NewResponseHandler(*cfg)
+	userHandler := user.NewUserHandler(responseHandler)
 
 	r := gin.Default()
 
@@ -43,11 +64,7 @@ func main() {
 		responseHandler.Send(c, http.StatusOK, response.Messages.Success, healthData)
 	})
 
-	r.GET("/", func(c *gin.Context) {
-		responseHandler.Send(c, http.StatusOK, response.Messages.Success, gin.H{
-			"message": "Hello from new handler",
-		})
-	})
+	r.GET("/", userHandler.HandleCreateUser)
 
 	r.GET("/ping", func(c *gin.Context) {
 		responseHandler.Send(c, http.StatusOK, response.Messages.Success, gin.H{
