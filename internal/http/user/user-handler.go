@@ -10,11 +10,13 @@ import (
 
 type UserHandler struct {
 	responseHandler *response.ResponseHandler;
+	userRepo UserRepository;
 }
 
-func NewUserHandler(responseHandler *response.ResponseHandler) *UserHandler {
+func NewUserHandler(userRepo UserRepository, responseHandler *response.ResponseHandler) *UserHandler {
 	return &UserHandler{
 		responseHandler,
+		userRepo,
 	}
 }
 

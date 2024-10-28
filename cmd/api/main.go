@@ -12,45 +12,35 @@ import (
 
 	"github.com/Shravan-Chaudhary/revamp-server/internal/http/user"
 	"github.com/Shravan-Chaudhary/revamp-server/internal/pkg/config"
+	"github.com/Shravan-Chaudhary/revamp-server/internal/pkg/database"
 	"github.com/Shravan-Chaudhary/revamp-server/internal/pkg/errors"
 	"github.com/Shravan-Chaudhary/revamp-server/internal/pkg/health"
 	"github.com/Shravan-Chaudhary/revamp-server/internal/pkg/response"
-	"github.com/Shravan-Chaudhary/revamp-server/internal/pkg/types"
 	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func main() {
-	// custom logger if any
-	// database setup
-	// redis setup if any
-
 	cfg := config.MustLoad()
-	client, err := mongo.Connect(context.TODO(), options.Client().
-		ApplyURI(cfg.MONGO_URI))
+
+	// Connect to MongoDB
+	client, err := database.ConnectMongoDB(cfg.MONGO_URI)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to connect to MongoDB: %s", err.Error())
 	}
 	slog.Info("Connected to MongoDB")
-	ctx := context.Background()
-	coll := client.Database(cfg.DATABASE_NAME).Collection("users")
-
-	userOne := types.User{
-		ID : "1",
-		FIRSTNAME: "Shravan",
-		LASTNAME: "Chaudhary",
-	}
-	coll.InsertOne(ctx, userOne)
 
 	responseHandler := response.NewResponseHandler(*cfg)
-	userHandler := user.NewUserHandler(responseHandler)
+	mongoUserRepository := user.NewMongoUserRepository(client, cfg)
+	userHandler := user.NewUserHandler(mongoUserRepository, responseHandler)
 
 	r := gin.Default()
 
 	isDev := true
+
+	// Middlewares
 	r.Use(errors.ErrorHandler(isDev))
 
+	// Other routes
 	r.NoRoute(func(c *gin.Context) {
 		c.Error(errors.HttpErrors.NotFound("Route not found"))
 	})
@@ -64,6 +54,7 @@ func main() {
 		responseHandler.Send(c, http.StatusOK, response.Messages.Success, healthData)
 	})
 
+	// User routes
 	r.GET("/", userHandler.HandleCreateUser)
 
 	r.GET("/ping", func(c *gin.Context) {
@@ -72,6 +63,7 @@ func main() {
 		})
 	})
 
+	//  Start server
 	server := &http.Server{
 		Addr: cfg.Addr,
 		Handler: r,
